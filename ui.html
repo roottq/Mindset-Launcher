@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Mindset Launcher</title>
+    <style>
+        @font-face { font-family: 'Minecraft'; src: url('Minecraft.ttf'); }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            height: 100vh; background-image: url('background.jpg');
+            background-size: cover; background-position: center;
+            font-family: 'Segoe UI', sans-serif; color: white;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        /* Убрали .titlebar. Теперь контент занимает всё окно. */
+        .app-container {
+            flex-grow: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px 30px 30px 30px;
+            height: 100vh;
+        }
+
+        .glass {
+            background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ЛЕВАЯ ПАНЕЛЬ */
+        .sidebar { width: 280px; display: flex; flex-direction: column; padding: 25px 20px; }
+        .logo { font-family: 'Minecraft', sans-serif; font-size: 32px; letter-spacing: 2px; margin-bottom: 20px; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+
+        .profile-selector { display: flex; gap: 5px; margin-bottom: 20px; }
+        .profile-selector select {
+            flex-grow: 1; background: #27272a; color: white; border: 1px solid #3f3f46;
+            padding: 10px; border-radius: 8px; outline: none; cursor: pointer; font-size: 14px;
+        }
+        .profile-selector button {
+            background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 8px;
+            padding: 0 15px; cursor: pointer; font-weight: bold; font-size: 18px;
+        }
+        .profile-selector button:hover { background: rgba(255,255,255,0.2); }
+
+        .spacer { flex-grow: 1; }
+
+        .side-btn {
+            width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 12px; border-radius: 10px; font-size: 13px;
+            cursor: pointer; transition: 0.2s; margin-top: 8px; text-align: left; padding-left: 15px;
+        }
+        .side-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+        /* ПРАВАЯ ПАНЕЛЬ */
+        .main-area { flex-grow: 1; display: flex; flex-direction: column; padding: 25px; position: relative; overflow: hidden; }
+
+        .tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .tab-btn { background: none; border: none; color: #888; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; padding: 5px 10px; }
+        .tab-btn:hover { color: white; }
+        .tab-btn.active { color: white; border-bottom: 3px solid white; }
+
+        .tab-content { display: none; flex-direction: column; height: 100%; }
+        .tab-content.active { display: flex; }
+
+        /* Версии */
+        .version-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; overflow-y: auto; max-height: 250px; padding-right: 5px; }
+        .version-grid::-webkit-scrollbar { width: 5px; }
+        .version-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+
+        .version-card {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .version-card:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-3px); }
+        .version-card.active { background: white; color: black; border-color: white; }
+        .version-card .icon { font-size: 24px; margin-bottom: 5px; }
+        .version-card .ver-name { font-size: 16px; font-weight: bold; }
+
+        .server-input-container { margin-top: 15px; display: flex; gap: 10px; }
+        .server-input-container input {
+            flex-grow: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 12px 15px; border-radius: 10px; outline: none; font-size: 14px;
+        }
+        .server-input-container input:focus { border-color: rgba(255,255,255,0.4); }
+
+        /* Моды и Скриншоты */
+        .mods-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .mods-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 260px; }
+        .mod-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 15px; border-radius: 10px; font-size: 14px;
+        }
+        .toggle-btn {
+            background: #3f3f46; border: none; color: white; padding: 5px 10px;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s;
+        }
+        .toggle-btn.on { background: #22c55e; color: black; }
+
+        .screenshots-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; overflow-y: auto; max-height: 300px; padding-right: 5px;
+        }
+        .screenshot-item {
+            position: relative; border-radius: 10px; overflow: hidden; cursor: pointer;
+            aspect-ratio: 16/9; background: #000; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .screenshot-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.2s; }
+        .screenshot-item:hover img { transform: scale(1.05); }
+        .screenshot-actions {
+            position: absolute; bottom: 5px; right: 5px; display: flex; gap: 5px; opacity: 0; transition: 0.2s;
+        }
+        .screenshot-item:hover .screenshot-actions { opacity: 1; }
+        .ss-btn {
+            background: rgba(0,0,0,0.7); border: none; color: white; border-radius: 4px;
+            padding: 4px 8px; cursor: pointer; font-size: 12px;
+        }
+        .ss-btn:hover { background: rgba(0,0,0,0.9); }
+
+        .play-btn {
+            background: white; color: black; border: none; padding: 18px;
+            border-radius: 16px; font-size: 22px; font-weight: bold; cursor: pointer;
+            margin-top: auto; transition: all 0.3s ease; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        .play-btn:hover { box-shadow: 0 0 40px rgba(255, 255, 255, 0.6); transform: scale(1.01); }
+
+        /* Модалка настроек */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; backdrop-filter: blur(5px); z-index: 100;}
+        .modal-content { background: #18181b; padding: 25px; border-radius: 16px; width: 320px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 15px; }
+        .modal-content h3 { margin-bottom: 10px; text-align: center; }
+        .modal-content label { font-size: 13px; color: #aaa; }
+        .modal-content input[type="text"] { background: #27272a; border: 1px solid #3f3f46; color: white; padding: 10px; border-radius: 8px; outline: none; }
+        .modal-content input[type="range"] { width: 100%; accent-color: white; }
+
+        .opt-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .opt-container input { width: 18px; height: 18px; accent-color: white; cursor: pointer; }
+
+        .save-btn { background: white; color: black; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .save-btn:hover { background: #ddd; }
+
+        /* Тост */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #22c55e; color: black; padding: 10px 20px; border-radius: 8px;
+            font-weight: bold; opacity: 0; transition: opacity 0.3s; z-index: 200;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="glass sidebar">
+            <div class="logo">MINDSET</div>
+
+            <div class="profile-selector">
+                <select id="profile-select" onchange="window.pywebview.api.switch_profile(this.value)"></select>
+                <button onclick="createNewProfile()">+</button>
+            </div>
+
+            <div class="spacer"></div>
+
+            <button class="side-btn" onclick="window.pywebview.api.set_skin()">🎨 Сменить скин</button>
+            <button class="side-btn" onclick="window.pywebview.api.open_saves()">💾 Папка сохранений</button>
+            <button class="side-btn" onclick="window.pywebview.api.clear_cache()">🧹 Очистить кэш</button>
+            <button class="side-btn" onclick="openSettings()" style="margin-top: 15px; background: rgba(255,255,255,0.2);">⚙ Настройки</button>
+        </div>
+
+        <div class="glass main-area">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('play')">Играть</button>
+                <button class="tab-btn" onclick="switchTab('mods')">Моды</button>
+                <button class="tab-btn" onclick="switchTab('screens')">Скриншоты</button>
+            </div>
+
+            <div class="tab-content active" id="tab-play">
+                <div class="version-grid" id="version-grid"></div>
+
+                <div class="server-input-container">
+                    <input type="text" id="server-ip-input" placeholder="IP сервера (необязательно)"
+                           onchange="window.pywebview.api.set_server(this.value)">
+                </div>
+
+                <button class="play-btn" id="play-btn" onclick="playGame()">ИГРАТЬ</button>
+            </div>
+
+            <div class="tab-content" id="tab-mods">
+                <div class="mods-header">
+                    <button class="side-btn" style="width: auto; margin: 0;" onclick="window.pywebview.api.import_mod()">➕ Импорт мода</button>
+                    <button class="side-btn" style="width: auto; margin: 0;" onclick="window.pywebview.api.open_mods()">📂 Папка модов</button>
+                </div>
+                <div class="mods-list" id="mods-list"></div>
+                <button class="play-btn" style="margin-top: 20px;" onclick="window.pywebview.api.play_game()">ЗАПУСТИТЬ С МОДАМИ</button>
+            </div>
+
+            <div class="tab-content" id="tab-screens">
+                <div class="screenshots-grid" id="screenshots-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <h3>Настройки</h3>
+            <label>ОЗУ: <span id="ram-val">4</span> ГБ</label>
+            <input type="range" min="2" max="16" value="4" id="ram-slider" oninput="document.getElementById('ram-val').innerText = this.value">
+
+            <label>Путь к Java</label>
+            <input type="text" value="java" id="java-input">
+
+            <div class="opt-container">
+                <input type="checkbox" id="opt-checkbox">
+                <label for="opt-checkbox">⚡ Включить оптимизацию (Aikar Flags)</label>
+            </div>
+
+            <button class="save-btn" onclick="saveSettings()">Сохранить</button>
+            <button class="save-btn" style="background: #333; color: white;" onclick="window.pywebview.api.check_updates()">🔄 Проверить обновления</button>
+            <button class="save-btn" style="background: #333; color: white;" onclick="closeSettings()">Закрыть</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Готово!</div>
+
+    <script>
+        window.addEventListener('pywebviewready', function() {
+            window.pywebview.api.ready();
+        });
+
+        const versionsData = [
+            { id: "26.2", desc: "Latest", icon: "🚀" },
+            { id: "1.17", desc: "Caves", icon: "⛰️" },
+            { id: "1.14.4", desc: "Village", icon: "🐼" },
+            { id: "1.12.2", desc: "Mods", icon: "⚙️" },
+            { id: "1.7.10", desc: "Old", icon: "🧱" }
+        ];
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'play') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-play').classList.add('active');
+            } else if (tab === 'mods') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-mods').classList.add('active');
+                loadMods();
+            } else if (tab === 'screens') {
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
+                document.getElementById('tab-screens').classList.add('active');
+                loadScreenshots();
+            }
+        }
+
+        async function loadMods() {
+            const mods = await window.pywebview.api.get_mods();
+            const list = document.getElementById('mods-list');
+            list.innerHTML = '';
+            if (mods.length === 0) {
+                list.innerHTML = '<div style="color:#888; text-align:center; margin-top:20px;">Модов пока нет</div>';
+                return;
+            }
+            mods.forEach(mod => {
+                const div = document.createElement('div');
+                div.className = 'mod-item';
+                div.innerHTML = `
+                    <span>${mod.name}</span>
+                    <button class="toggle-btn ${mod.enabled ? 'on' : ''}" onclick="toggleMod('${mod.name}')">
+                        ${mod.enabled ? 'ВКЛ' : 'ВЫКЛ'}
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function toggleMod(name) {
+            await window.pywebview.api.toggle_mod(name);
+            loadMods();
+        }
+
+        async function loadScreenshots() {
+            const screens = await window.pywebview.api.get_screenshots();
+            const grid = document.getElementById('screenshots-grid');
+            grid.innerHTML = '';
+            if (screens.length === 0) {
+                grid.innerHTML = '<div style="color:#888; text-align:center; grid-column: 1/-1; margin-top:20px;">Скриншотов пока нет</div>';
+                return;
+            }
+            const mcDirPath = await window.pywebview.api.get_mc_dir();
+
+            screens.forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'screenshot-item';
+                div.innerHTML = `
+                    <img src="file://${mcDirPath}/screenshots/${file}" alt="screenshot">
+                    <div class="screenshot-actions">
+                        <button class="ss-btn" onclick="window.pywebview.api.open_screenshot('${file}')">🔍</button>
+                        <button class="ss-btn" onclick="deleteScreen('${file}')">🗑️</button>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        async function deleteScreen(file) {
+            if(confirm('Удалить скриншот?')) {
+                await window.pywebview.api.delete_screenshot(file);
+                loadScreenshots();
+            }
+        }
+
+        function updateProfileList(profiles, active) {
+            const select = document.getElementById('profile-select');
+            select.innerHTML = '';
+            profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p; opt.innerText = p;
+                if (p === active) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function createNewProfile() {
+            let name = prompt("Введите ваш ник (он же будет названием профиля):");
+            if (name) window.pywebview.api.create_profile(name);
+        }
+
+        function playGame() {
+            const btn = document.getElementById('play-btn');
+            btn.innerText = "ЗАГРУЗКА..."; btn.style.color = "#888";
+            window.pywebview.api.play_game();
+        }
+
+        function selectVersion(element, version) {
+            document.querySelectorAll('.version-card').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            window.pywebview.api.set_version(version);
+        }
+
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+        function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+
+        function saveSettings() {
+            let ram = document.getElementById('ram-slider').value;
+            let java = document.getElementById('java-input').value;
+            let opt = document.getElementById('opt-checkbox').checked;
+            window.pywebview.api.save_settings(ram, java, opt);
+            closeSettings();
+            showToast('Настройки сохранены!');
+        }
+
+        window.updateUI = function(current_version) {
+            const grid = document.getElementById('version-grid');
+            grid.innerHTML = '';
+            versionsData.forEach(ver => {
+                const div = document.createElement('div');
+                div.className = 'version-card' + (ver.id === current_version ? ' active' : '');
+                div.onclick = function() { selectVersion(this, ver.id); };
+                div.innerHTML = `<div class="icon">${ver.icon}</div><div class="ver-name">${ver.id}</div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        window.fillSettings = function(ram, java, optimized, server_ip) {
+            document.getElementById('ram-slider').value = ram;
+            document.getElementById('ram-val').innerText = ram;
+            document.getElementById('java-input').value = java;
+            document.getElementById('opt-checkbox').checked = optimized;
+            document.getElementById('server-ip-input').value = server_ip || "";
+        }
+
+        window.resetPlayButton = function() {
+            const btn = document.getElementById('play-btn');
+            btn.innerText = "ИГРАТЬ"; btn.style.color = "black";
+        }
+
+        window.showToast = function(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+    </script>
+</body>
+</html>
