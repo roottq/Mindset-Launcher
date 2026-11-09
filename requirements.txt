@@ -1,0 +1,4 @@
+pywebview
+minecraft-launcher-lib
+pypresence
+Pillow
